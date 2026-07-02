@@ -6,6 +6,8 @@ type MoveArgs = {
   task_id: string;
   board_column_id: string;
   board_id?: string;
+  mr_url?: string;
+  field_name?: string;
 };
 
 type Handler = (args: MoveArgs) => Promise<{
@@ -115,5 +117,54 @@ describe("weeek_move_task tool", () => {
     const res = await fake.getHandler()({ task_id: "missing", board_column_id: "col-1" });
     expect(res.isError).toBe(true);
     expect(res.content[0]?.text).toContain("Resource not found");
+  });
+
+  it("resolves the МР custom field and includes it in the same PUT when mr_url is provided", async () => {
+    const getFn = vi.fn(async (path: string) => {
+      if (path === "/tm/tasks/t1") return { task: { id: "t1", projectId: "p1" } };
+      if (path === "/tm/projects/p1") {
+        return { project: { customFields: [{ id: "field-mr", name: "МР" }] } };
+      }
+      throw new Error(`unexpected GET ${path}`);
+    });
+    const putFn = vi.fn(async () => ({ task: { id: "t1" } }));
+    const client = {
+      get: getFn,
+      post: vi.fn(),
+      put: putFn,
+      patch: vi.fn(),
+    } as unknown as Parameters<typeof registerMoveTask>[1];
+    registerMoveTask(fake.server, client);
+
+    await fake.getHandler()({
+      task_id: "t1",
+      board_column_id: "col-2",
+      mr_url: "https://github.com/acme/repo/pull/9",
+    });
+
+    const [path, body] = putFn.mock.calls[0]!;
+    expect(path).toBe("/tm/tasks/t1");
+    expect(body).toEqual({
+      boardColumnId: "col-2",
+      customFields: { "field-mr": "https://github.com/acme/repo/pull/9" },
+    });
+  });
+
+  it("does not touch customFields when mr_url is omitted", async () => {
+    const getFn = vi.fn();
+    const putFn = vi.fn(async () => ({ task: { id: "t1" } }));
+    const client = {
+      get: getFn,
+      post: vi.fn(),
+      put: putFn,
+      patch: vi.fn(),
+    } as unknown as Parameters<typeof registerMoveTask>[1];
+    registerMoveTask(fake.server, client);
+
+    await fake.getHandler()({ task_id: "t1", board_column_id: "col-2" });
+
+    expect(getFn).not.toHaveBeenCalled();
+    const body = putFn.mock.calls[0]![1] as Record<string, unknown>;
+    expect(body.customFields).toBeUndefined();
   });
 });

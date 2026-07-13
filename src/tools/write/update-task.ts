@@ -15,6 +15,7 @@ import type { WeeekApiClient } from "../../client/weeek-api-client.js";
 import { toMcpError } from "../../errors.js";
 import { logger } from "../../logger.js";
 import { jsonContent } from "../read/_helpers.js";
+import { splitWeeekDate } from "./_dates.js";
 
 function unwrapTask(raw: unknown): unknown {
   if (raw && typeof raw === "object" && "task" in (raw as object)) {
@@ -55,10 +56,16 @@ const inputSchema = {
       "New primary assignee WEEEK user UUID. Optional. Obtain from weeek_list_workspace_members. Omit to leave unchanged."
     )
     .optional(),
-  date_end: z
+  due_date: z
     .string()
     .describe(
-      "New due date in ISO 8601. Optional. Omit to leave unchanged. WEEEK's task model uses dateEnd, not dueDate."
+      "New deadline / due date. Optional. Omit to leave unchanged. Pass 'YYYY-MM-DD' (e.g. 2026-07-20) or an ISO 8601 timestamp (e.g. 2026-07-20T14:30:00Z). Maps to WEEEK's dueDate / dueDateTime."
+    )
+    .optional(),
+  start_date: z
+    .string()
+    .describe(
+      "New start date. Optional. Omit to leave unchanged. Same format as due_date. Maps to WEEEK's startDate / startDateTime."
     )
     .optional(),
 };
@@ -71,7 +78,7 @@ export function registerUpdateTask(
     "weeek_update_task",
     {
       description:
-        "Update editable fields of an EXISTING task in WEEEK. WRITE OPERATION — the MCP client may prompt for confirmation. Required: task_id. Optional: title, description, priority, assignee_id, due_date — only provided fields are sent, omitted fields remain unchanged. Returns the updated task. Do NOT use this to move tasks between columns (use weeek_move_task) or to mark tasks complete (use weeek_complete_task) — those are separate operations in WEEEK. The task_id must come from weeek_list_tasks.",
+        "Update editable fields of an EXISTING task in WEEEK. WRITE OPERATION — the MCP client may prompt for confirmation. Required: task_id. Optional: title, description, priority, assignee_id, due_date (deadline), start_date — only provided fields are sent, omitted fields remain unchanged. Returns the updated task. Do NOT use this to move tasks between columns (use weeek_move_task) or to mark tasks complete (use weeek_complete_task) — those are separate operations in WEEEK. The task_id must come from weeek_list_tasks.",
       inputSchema,
     },
     async (args: {
@@ -80,7 +87,8 @@ export function registerUpdateTask(
       description?: string;
       priority?: number;
       assignee_id?: string;
-      date_end?: string;
+      due_date?: string;
+      start_date?: string;
     }) => {
       try {
         const body: Record<string, unknown> = {};
@@ -88,12 +96,21 @@ export function registerUpdateTask(
         if (args.description !== undefined) body.description = args.description;
         if (args.priority !== undefined) body.priority = args.priority;
         if (args.assignee_id !== undefined) body.userId = args.assignee_id;
-        if (args.date_end !== undefined) body.dateEnd = args.date_end;
+        if (args.due_date !== undefined) {
+          const { date, dateTime } = splitWeeekDate(args.due_date);
+          if (date !== undefined) body.dueDate = date;
+          if (dateTime !== undefined) body.dueDateTime = dateTime;
+        }
+        if (args.start_date !== undefined) {
+          const { date, dateTime } = splitWeeekDate(args.start_date);
+          if (date !== undefined) body.startDate = date;
+          if (dateTime !== undefined) body.startDateTime = dateTime;
+        }
 
         if (Object.keys(body).length === 0) {
           return toMcpError(
             new Error(
-              "weeek_update_task: at least one editable field must be provided (title, description, priority, assignee_id, or date_end)"
+              "weeek_update_task: at least one editable field must be provided (title, description, priority, assignee_id, due_date, or start_date)"
             )
           );
         }

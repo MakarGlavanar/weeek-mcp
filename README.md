@@ -4,7 +4,7 @@ MCP (Model Context Protocol) server for the [WEEEK](https://weeek.net) task trac
 
 ## Features
 
-- **12 tools** — 7 read (projects, boards, columns, tasks, comments) + 5 write (create/update/move/complete tasks, post comments)
+- **16 tools** — 10 read (projects, boards, columns, tasks, workspace members, CRM funnels/statuses/deals) + 6 write (create/update/move/complete tasks, set MR link, create CRM deal)
 - **Read/write split** — tools are grouped so MCP clients can auto-approve reads while gating writes
 - **Stdio transport** — zero server infrastructure, runs via `npx`
 - **Token auth** — single `WEEEK_API_TOKEN` env var, never logged
@@ -114,19 +114,23 @@ All tools are prefixed `weeek_`. Read tools are side-effect free and safe for au
 | `weeek_get_project` | Get a single project's full details by ID. |
 | `weeek_list_boards` | List boards inside a project. |
 | `weeek_list_board_columns` | List columns (statuses) inside a board. Required before moving tasks. |
-| `weeek_list_tasks` | List tasks with filters (project, board, column, assignee, completion) and pagination. |
+| `weeek_list_tasks` | List tasks with filters (project, board, column, assignee, completion) and pagination. Surfaces each task's `dueDate` / `dueDateTime`. |
 | `weeek_get_task` | Get full details of a single task by ID. |
-| `weeek_list_task_comments` | List comments on a task. |
+| `weeek_list_workspace_members` | List workspace members (user UUIDs) for assigning tasks/deals. |
+| `weeek_list_funnels` | List CRM sales funnels (pipelines). Start here for deal work. |
+| `weeek_list_funnel_statuses` | List the statuses (stages) of one CRM funnel. |
+| `weeek_list_deals` | List deals within one CRM funnel status. |
 
 ### Write tools
 
 | Tool | Purpose |
 |------|---------|
-| `weeek_create_task` | Create a NEW task. Requires title + project_id. |
-| `weeek_update_task` | Edit fields (title, description, priority, assignee, due date) of an existing task. |
+| `weeek_create_task` | Create a NEW task. Requires title + project_id. Optional `due_date` / `start_date` accept `YYYY-MM-DD` or an ISO 8601 timestamp. |
+| `weeek_update_task` | Edit fields (title, description, priority, assignee, `due_date`, `start_date`) of an existing task. |
 | `weeek_move_task` | Move a task to a different board column (status change). |
 | `weeek_complete_task` | Mark a task complete, or reopen a completed task. |
-| `weeek_create_task_comment` | Post a comment on a task. |
+| `weeek_set_task_mr_link` | Record a merge-request link on a task's МР custom field. |
+| `weeek_create_deal` | Create a NEW CRM deal in a funnel status. Requires status_id + title. |
 
 ## Safety
 

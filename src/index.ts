@@ -24,7 +24,7 @@ import { registerWriteTools } from "./tools/write/index.js";
 import { logger } from "./logger.js";
 
 const SERVER_NAME = "weeek-mcp-server";
-const SERVER_VERSION = "0.1.0";
+const SERVER_VERSION = "0.2.0";
 
 async function main(): Promise<void> {
   let config;

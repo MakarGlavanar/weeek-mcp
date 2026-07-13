@@ -11,6 +11,7 @@ import type { WeeekApiClient } from "../../client/weeek-api-client.js";
 import { toMcpError } from "../../errors.js";
 import { logger } from "../../logger.js";
 import { jsonContent } from "../read/_helpers.js";
+import { splitWeeekDate } from "./_dates.js";
 
 function unwrapTask(raw: unknown): unknown {
   if (raw && typeof raw === "object" && "task" in (raw as object)) {
@@ -64,10 +65,16 @@ const inputSchema = {
       "WEEEK user UUID to assign as primary. Optional. Obtain from weeek_list_workspace_members — do not guess IDs."
     )
     .optional(),
-  date_end: z
+  due_date: z
     .string()
     .describe(
-      "Due date in ISO 8601 format (e.g. 2026-04-15 or 2026-04-15T12:00:00Z). Optional. WEEEK's task model uses dateEnd, not dueDate."
+      "Deadline / due date. Optional. Pass a calendar date 'YYYY-MM-DD' (e.g. 2026-07-20) OR an ISO 8601 timestamp for a time-specific due (e.g. 2026-07-20T14:30:00Z). A naive datetime is treated as UTC. Maps to WEEEK's dueDate / dueDateTime."
+    )
+    .optional(),
+  start_date: z
+    .string()
+    .describe(
+      "Start date. Optional. Same format as due_date ('YYYY-MM-DD' or ISO 8601 timestamp). Maps to WEEEK's startDate / startDateTime."
     )
     .optional(),
 };
@@ -80,7 +87,7 @@ export function registerCreateTask(
     "weeek_create_task",
     {
       description:
-        "Create a NEW task in WEEEK. WRITE OPERATION — the MCP client may prompt for user confirmation before this runs. Required: title and project_id. Optional: description, board_id, board_column_id (status), priority, assignee_id, due_date. Returns the created task object in the same shape as weeek_get_task. Use this ONLY when creating a brand-new task; to change an existing task's fields use weeek_update_task, to move it to a different column use weeek_move_task, to mark it done use weeek_complete_task. All *_id parameters must come from the corresponding list tools — do not guess IDs.",
+        "Create a NEW task in WEEEK. WRITE OPERATION — the MCP client may prompt for user confirmation before this runs. Required: title and project_id. Optional: description, board_id, board_column_id (status), priority, assignee_id, due_date (deadline), start_date. Returns the created task object in the same shape as weeek_get_task. Use this ONLY when creating a brand-new task; to change an existing task's fields use weeek_update_task, to move it to a different column use weeek_move_task, to mark it done use weeek_complete_task. All *_id parameters must come from the corresponding list tools — do not guess IDs.",
       inputSchema,
     },
     async (args: {
@@ -91,7 +98,8 @@ export function registerCreateTask(
       board_column_id?: string;
       priority?: number;
       assignee_id?: string;
-      date_end?: string;
+      due_date?: string;
+      start_date?: string;
     }) => {
       try {
         const body: Record<string, unknown> = {
@@ -104,7 +112,16 @@ export function registerCreateTask(
           body.boardColumnId = args.board_column_id;
         if (args.priority !== undefined) body.priority = args.priority;
         if (args.assignee_id !== undefined) body.userId = args.assignee_id;
-        if (args.date_end !== undefined) body.dateEnd = args.date_end;
+        if (args.due_date !== undefined) {
+          const { date, dateTime } = splitWeeekDate(args.due_date);
+          if (date !== undefined) body.dueDate = date;
+          if (dateTime !== undefined) body.dueDateTime = dateTime;
+        }
+        if (args.start_date !== undefined) {
+          const { date, dateTime } = splitWeeekDate(args.start_date);
+          if (date !== undefined) body.startDate = date;
+          if (dateTime !== undefined) body.startDateTime = dateTime;
+        }
 
         const raw = await client.post<unknown>("/tm/tasks", body);
         const task = unwrapTask(raw);

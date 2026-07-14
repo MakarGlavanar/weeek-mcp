@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: verifying
 stopped_at: Completed 04-distribution-quality/04-03-PLAN.md
-last_updated: "2026-04-09T14:26:13.417Z"
-last_activity: 2026-04-09
+last_updated: "2026-07-13T17:08:01+03:00"
+last_activity: 2026-07-13
 progress:
   total_phases: 4
   completed_phases: 4
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: 01 (foundation) — EXECUTING
 Plan: 3 of 3
 Status: Phase complete — ready for verification
-Last activity: 2026-04-10 - Completed quick task 260410-jfw: Remove comment tools — WEEEK API has no comment endpoints
+Last activity: 2026-07-13 - Completed quick task 260713-acf: Task deadlines fix (dateEnd → dueDate/dueDateTime) + CRM deal tools (funnels/statuses/deals). Commit 8943498, PR #2.
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -98,6 +98,12 @@ Recent decisions affecting current work:
 - [Phase 04-distribution-quality]: Tool handler tests use fake McpServer with vi.fn on registerTool to capture and directly invoke handlers without MCP transport
 - [Phase 04-distribution-quality]: All 12 tools pre-passed Pitfall 4 audit — no description or schema fixes needed
 - [Phase 04-distribution-quality]: npm pack + npx tarball smoke test: zero stdout, 12 tool registrations confirmed
+- [Quick 260713-acf]: Real task deadline field is dueDate/dueDateTime, NOT dateEnd — live API accepts dateEnd (200) but silently drops the deadline; reverses 48577bf's wrong assumption
+- [Quick 260713-acf]: due_date/start_date params take a date OR ISO timestamp; splitWeeekDate routes to dueDate vs dueDateTime, naive datetime treated as UTC (strict Y-m-d\TH:i:s\Z)
+- [Quick 260713-acf]: list_tasks now surfaces startDate/dueDate(+DateTime) instead of always-null legacy dateStart/dateEnd
+- [Quick 260713-acf]: CRM deals are status-scoped — create=POST /crm/statuses/{statusId}/deals (funnel inferred), list=GET same path; /crm/deals 404s (verified live)
+- [Quick 260713-acf]: DELETE /tm/tasks/{id} is a soft delete (isDeleted=true, hidden from lists) — live-API test fixtures land in trash, not hard-removed
+- [Quick 260713-acf]: Delivered outside GSD workflow (direct edits + single commit 8943498 + PR #2); journal parity restored via this SUMMARY afterwards
 
 ### Pending Todos
 
@@ -112,6 +118,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260410-jfw | Remove comment tools — WEEEK API has no comment endpoints | 2026-04-10 | 07808ab | [260410-jfw-remove-comment-tools-weeek-api-has-no-co](./quick/260410-jfw-remove-comment-tools-weeek-api-has-no-co/) |
+| 260713-acf | Task deadlines fix (dateEnd → dueDate/dueDateTime) + CRM deal tools | 2026-07-13 | 8943498 | [260713-acf-deadlines-fix-and-crm-deal-tools](./quick/260713-acf-deadlines-fix-and-crm-deal-tools/) |
 
 ## Session Continuity
 

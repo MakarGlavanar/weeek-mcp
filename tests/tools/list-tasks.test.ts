@@ -115,8 +115,10 @@ describe("weeek_list_tasks tool", () => {
         authorId: string | null;
         isCompleted: boolean;
         priority: string | null;
-        dateStart: string | null;
-        dateEnd: string | null;
+        startDate: string | null;
+        dueDate: string | null;
+        startDateTime: string | null;
+        dueDateTime: string | null;
         tags: string[];
         updatedAt: string | null;
       }>;
@@ -133,7 +135,8 @@ describe("weeek_list_tasks tool", () => {
       "a0f583cb-b8a9-4408-a822-c05213b3fb91",
     ]);
     expect(payload.tasks[0]!.type).toBe("action");
-    expect(payload.tasks[0]!.dateEnd).toBe("2026-05-01");
+    // Legacy dateEnd is surfaced as dueDate (fallback when dueDate is absent)
+    expect(payload.tasks[0]!.dueDate).toBe("2026-05-01");
     expect(payload.tasks[0]!.tags).toEqual(["39", "42"]);
     // When userId is absent, first assignee from array is used
     expect(payload.tasks[1]!.assigneeId).toBe("u2");

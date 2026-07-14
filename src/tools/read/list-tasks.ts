@@ -27,6 +27,11 @@ interface RawTask {
   isCompleted?: boolean;
   isDeleted?: boolean;
   priority?: number | string;
+  startDate?: string | null;
+  dueDate?: string | null;
+  startDateTime?: string | null;
+  dueDateTime?: string | null;
+  // Legacy fields kept for fallback; WEEEK leaves them null on modern tasks.
   dateStart?: string | null;
   dateEnd?: string | null;
   date?: string | null;
@@ -50,8 +55,14 @@ interface ShapedTask {
   authorId: string | null;
   isCompleted: boolean;
   priority: string | null;
-  dateStart: string | null;
-  dateEnd: string | null;
+  /** Start date (Y-m-d) if set. */
+  startDate: string | null;
+  /** Deadline / due date (Y-m-d) if set. */
+  dueDate: string | null;
+  /** Time-specific start timestamp (ISO UTC) if the task uses one. */
+  startDateTime: string | null;
+  /** Time-specific deadline timestamp (ISO UTC) if the task uses one. */
+  dueDateTime: string | null;
   tags: string[];
   updatedAt: string | null;
 }
@@ -77,8 +88,10 @@ function shapeTask(raw: RawTask): ShapedTask {
     authorId: raw.authorId == null ? null : String(raw.authorId),
     isCompleted: Boolean(raw.isCompleted),
     priority: raw.priority == null ? null : String(raw.priority),
-    dateStart: raw.dateStart ?? null,
-    dateEnd: raw.dateEnd ?? null,
+    startDate: raw.startDate ?? raw.dateStart ?? null,
+    dueDate: raw.dueDate ?? raw.dateEnd ?? null,
+    startDateTime: raw.startDateTime ?? null,
+    dueDateTime: raw.dueDateTime ?? null,
     tags: Array.isArray(raw.tags) ? raw.tags.map((t) => String(t)) : [],
     updatedAt: raw.updatedAt ?? null,
   };

@@ -5,6 +5,19 @@ All notable changes to `weeek-mcp-server` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-07-13
+
+### Fixed
+
+- **Task deadlines now actually persist.** `weeek_create_task` / `weeek_update_task` sent the non-existent `dateEnd` field, which the WEEEK API silently ignored — no due date was ever set. They now map to the real `dueDate` (calendar `YYYY-MM-DD`) or `dueDateTime` (ISO 8601 UTC) fields, chosen automatically from the input format.
+- `weeek_list_tasks` now surfaces `dueDate` / `dueDateTime` / `startDate` / `startDateTime` instead of the always-null legacy `dateEnd` / `dateStart` fields.
+
+### Added
+
+- `due_date` and `start_date` parameters on `weeek_create_task` / `weeek_update_task` — accept either `YYYY-MM-DD` or an ISO 8601 timestamp (offset/naive values are normalized to UTC).
+- CRM read tools: `weeek_list_funnels`, `weeek_list_funnel_statuses`, `weeek_list_deals`.
+- CRM write tool: `weeek_create_deal` — create a deal in a funnel status (funnel inferred from the status; optional amount, description, win_status, assignees, contacts, organizations, tags).
+
 ## [0.1.0] - 2026-04-09
 
 Initial release. MCP server for the WEEEK task tracker.

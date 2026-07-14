@@ -10,7 +10,8 @@ type CreateArgs = {
   board_column_id?: string;
   priority?: number;
   assignee_id?: string;
-  date_end?: string;
+  due_date?: string;
+  start_date?: string;
 };
 
 type Handler = (args: CreateArgs) => Promise<{
@@ -91,13 +92,13 @@ describe("weeek_create_task tool", () => {
       board_column_id: "col1",
       priority: 3,
       assignee_id: "u1",
-      date_end: "2026-05-01",
+      due_date: "2026-05-01",
     });
 
     expect(postFn).toHaveBeenCalledTimes(1);
     const [path, body] = postFn.mock.calls[0]!;
     expect(path).toBe("/tm/tasks");
-    // WEEEK uses userId (not assigneeId) and dateEnd (not dueDate)
+    // WEEEK uses userId (not assigneeId) and dueDate (a plain Y-m-d date)
     expect(body).toEqual({
       title: "Ship it",
       projectId: "p1",
@@ -106,8 +107,31 @@ describe("weeek_create_task tool", () => {
       boardColumnId: "col1",
       priority: 3,
       userId: "u1",
-      dateEnd: "2026-05-01",
+      dueDate: "2026-05-01",
     });
+  });
+
+  it("maps a datetime due_date to dueDateTime (UTC Z format)", async () => {
+    const postFn = vi.fn(async () => ({ task: { id: "t1" } }));
+    const client = {
+      get: vi.fn(),
+      post: postFn,
+      put: vi.fn(),
+      patch: vi.fn(),
+    } as unknown as Parameters<typeof registerCreateTask>[1];
+    registerCreateTask(fake.server, client);
+
+    await fake.handler()({
+      title: "Timed",
+      project_id: "p1",
+      due_date: "2026-05-01T14:30:00Z",
+      start_date: "2026-04-30",
+    });
+    const body = postFn.mock.calls[0]![1] as Record<string, unknown>;
+    expect(body.dueDateTime).toBe("2026-05-01T14:30:00Z");
+    expect("dueDate" in body).toBe(false);
+    // start_date as a plain date maps to startDate
+    expect(body.startDate).toBe("2026-04-30");
   });
 
   it("omits optional fields when not provided", async () => {
@@ -125,7 +149,8 @@ describe("weeek_create_task tool", () => {
     expect(body).toEqual({ title: "minimal", projectId: "p1" });
     expect("description" in body).toBe(false);
     expect("boardId" in body).toBe(false);
-    expect("dateEnd" in body).toBe(false);
+    expect("dueDate" in body).toBe(false);
+    expect("dueDateTime" in body).toBe(false);
     expect("userId" in body).toBe(false);
   });
 
